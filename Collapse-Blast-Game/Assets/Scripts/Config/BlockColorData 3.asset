@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa534bfb12138cf4495a2601913a7f2b, type: 3}
+  m_Name: BlockColorData 3
+  m_EditorClassIdentifier: Assembly-CSharp::CollapseBlast.Config.BlockColorData
+  colorName: Blue
+  defaultIcon: {fileID: -4624011131410558117, guid: d5a03cc24eefd5342842f2de09bab0be, type: 3}
+  iconA: {fileID: -8923791490832965560, guid: 90ab3e105fb0dc0429565fed2fbf3bab, type: 3}
+  iconB: {fileID: -812536794617419617, guid: 9f1f3a9fc3e0677448709a80ca79902d, type: 3}
+  iconC: {fileID: -2915790821876642617, guid: e412876d350d9e1439ae04a558f07245, type: 3}
