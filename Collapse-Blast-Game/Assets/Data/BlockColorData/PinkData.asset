@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fa534bfb12138cf4495a2601913a7f2b, type: 3}
-  m_Name: BlockColorData 2
+  m_Name: PinkData
   m_EditorClassIdentifier: Assembly-CSharp::CollapseBlast.Config.BlockColorData
-  colorName: Yellow
-  defaultIcon: {fileID: 7985042018138347892, guid: 465d43be2fb0fbd4b982a34a63c68bff, type: 3}
-  iconA: {fileID: 414921610477409366, guid: 8053e1cba2567fd439c2885d76a09ccf, type: 3}
-  iconB: {fileID: -6038182108957047188, guid: 09691416cd4930a4da918ae05d4cad66, type: 3}
-  iconC: {fileID: -7586140276444505714, guid: a364ce1daf17cb649ba74d0eccebe7bd, type: 3}
+  colorType: 5
+  defaultIcon: {fileID: 742919511911846744, guid: a498679de1043fb40abb59f811cd6d2a, type: 3}
+  iconA: {fileID: 3519922619171193912, guid: 82fa1069de6e8a84f9c462f43d8a90d7, type: 3}
+  iconB: {fileID: -578229812787739823, guid: 616c857753ce27a478a2eda8438f0045, type: 3}
+  iconC: {fileID: -7755864299962720444, guid: f8ab67486d8bcfb439655502ffb62a62, type: 3}

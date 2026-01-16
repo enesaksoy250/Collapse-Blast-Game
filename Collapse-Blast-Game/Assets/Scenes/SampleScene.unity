@@ -424,8 +424,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c37b6fcbf04a28478d39738e50804c3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CollapseBlast.Block.BlockPool
-  blockPrefab: {fileID: 0}
-  poolParent: {fileID: 0}
+  blockPrefab: {fileID: 4310897766769806949, guid: 3028bfa7fba3d1f48a8eca8c9528fa5e, type: 3}
+  poolParent: {fileID: 154048658}
 --- !u!1 &2027513740
 GameObject:
   m_ObjectHideFlags: 0

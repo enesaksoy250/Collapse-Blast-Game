@@ -1,55 +1,35 @@
 using System.Collections.Generic;
 using UnityEngine;
-using CollapseBlast.Managers;
 
-namespace CollapseBlast.Handlers
+public class BlastHandler
 {
-    /// <summary>
-    /// Handles the blast/collapse mechanic when blocks are destroyed.
-    /// </summary>
-    public class BlastHandler
+    private GridManager gridManager;
+
+    public event System.Action<List<Vector2Int>> OnBlocksBlasted;
+
+    public BlastHandler(GridManager gridManager)
     {
-        private GridManager gridManager;
+        this.gridManager = gridManager;
+    }
 
-        // Event fired when blocks are blasted
-        public event System.Action<List<Vector2Int>> OnBlocksBlasted;
+    public bool BlastGroup(List<Vector2Int> group)
+    {
+        if (group == null || group.Count < 2)
+            return false;
 
-        public BlastHandler(GridManager gridManager)
+        gridManager.RemoveBlocks(group);
+        OnBlocksBlasted?.Invoke(group);
+
+        return true;
+    }
+
+    public HashSet<int> GetAffectedColumns(List<Vector2Int> group)
+    {
+        HashSet<int> columns = new HashSet<int>();
+        foreach (Vector2Int pos in group)
         {
-            this.gridManager = gridManager;
+            columns.Add(pos.x);
         }
-
-        /// <summary>
-        /// Blasts (removes) all blocks in the given group.
-        /// </summary>
-        /// <param name="group">List of positions to blast</param>
-        /// <returns>True if blast was successful</returns>
-        public bool BlastGroup(List<Vector2Int> group)
-        {
-            if (group == null || group.Count < 2)
-                return false;
-
-            // Remove all blocks in the group
-            gridManager.RemoveBlocks(group);
-
-            // Notify listeners
-            OnBlocksBlasted?.Invoke(group);
-
-            return true;
-        }
-
-        /// <summary>
-        /// Gets the columns affected by a blast.
-        /// Used to optimize gravity calculations.
-        /// </summary>
-        public HashSet<int> GetAffectedColumns(List<Vector2Int> group)
-        {
-            HashSet<int> columns = new HashSet<int>();
-            foreach (Vector2Int pos in group)
-            {
-                columns.Add(pos.x);
-            }
-            return columns;
-        }
+        return columns;
     }
 }

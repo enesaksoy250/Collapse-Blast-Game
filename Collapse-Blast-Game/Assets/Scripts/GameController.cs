@@ -1,279 +1,221 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using CollapseBlast.Config;
-using CollapseBlast.Core;
-using CollapseBlast.Data;
-using CollapseBlast.Managers;
-using CollapseBlast.Handlers;
-using CollapseBlast.Input;
 
-namespace CollapseBlast
+public class GameController : MonoBehaviour
 {
-    /// <summary>
-    /// Main game controller that orchestrates the game flow.
-    /// Manages game state and coordinates between all systems.
-    /// </summary>
-    public class GameController : MonoBehaviour
+    [Header("Configuration")]
+    [SerializeField]
+    private GameConfig gameConfig;
+
+    [Header("References")]
+    [SerializeField]
+    private GridManager gridManager;
+
+    [SerializeField]
+    private InputHandler inputHandler;
+
+    private BlastHandler blastHandler;
+    private GravityHandler gravityHandler;
+    private FillHandler fillHandler;
+    private GroupVisualUpdater groupVisualUpdater;
+    private DeadlockDetector deadlockDetector;
+    private SmartShuffler smartShuffler;
+
+    private GameState currentState;
+    private bool isProcessing;
+
+    public event System.Action OnGameStarted;
+    public event System.Action OnMoveCompleted;
+    public event System.Action OnShuffleTriggered;
+
+    private enum GameState
     {
-        [Header("Configuration")]
-        [SerializeField]
-        private GameConfig gameConfig;
+        Idle,
+        Processing,
+        Settling,
+        Shuffling
+    }
 
-        [Header("References")]
-        [SerializeField]
-        private GridManager gridManager;
+    private void Awake()
+    {
+        ValidateReferences();
+    }
 
-        [SerializeField]
-        private InputHandler inputHandler;
+    private void Start()
+    {
+        InitializeGame();
+    }
 
-        // Handlers
-        private BlastHandler blastHandler;
-        private GravityHandler gravityHandler;
-        private FillHandler fillHandler;
-        private GroupVisualUpdater groupVisualUpdater;
-        private DeadlockDetector deadlockDetector;
-        private SmartShuffler smartShuffler;
+    private void ValidateReferences()
+    {
+        if (gameConfig == null)
+            Debug.LogError("GameController: GameConfig is not assigned!");
+        if (gridManager == null)
+            Debug.LogError("GameController: GridManager is not assigned!");
+        if (inputHandler == null)
+            Debug.LogError("GameController: InputHandler is not assigned!");
+    }
 
-        // Game state
-        private GameState currentState;
-        private bool isProcessing;
+    public void InitializeGame()
+    {
+        gridManager.Initialize();
 
-        // Animation timing
-        private float settleDelay = 0.35f;
+        blastHandler = new BlastHandler(gridManager);
+        gravityHandler = new GravityHandler(gridManager, gameConfig);
+        fillHandler = new FillHandler(gridManager, gameConfig);
+        groupVisualUpdater = new GroupVisualUpdater(gridManager, gameConfig);
 
-        // Events
-        public event System.Action OnGameStarted;
-        public event System.Action OnMoveCompleted;
-        public event System.Action OnShuffleTriggered;
+        deadlockDetector = new DeadlockDetector(gridManager.GridData, gridManager.GroupFinder);
+        smartShuffler = new SmartShuffler(
+            gridManager.GridData,
+            gridManager.GroupFinder,
+            deadlockDetector,
+            gameConfig.colorCount
+        );
 
-        private enum GameState
+        inputHandler.OnPositionClicked += OnBlockClicked;
+        smartShuffler.OnShuffleCompleted += OnShuffleComplete;
+
+        gridManager.CreateGrid();
+        groupVisualUpdater.UpdateAllIcons();
+        CheckDeadlock();
+
+        currentState = GameState.Idle;
+        OnGameStarted?.Invoke();
+    }
+
+    private void OnBlockClicked(Vector2Int position)
+    {
+        if (currentState != GameState.Idle || isProcessing)
+            return;
+
+        List<Vector2Int> group = gridManager.GroupFinder.FindGroup(position.y, position.x);
+
+        if (group.Count < 2)
+            return;
+
+        StartCoroutine(ProcessMove(group));
+    }
+
+    private IEnumerator ProcessMove(List<Vector2Int> group)
+    {
+        isProcessing = true;
+        currentState = GameState.Processing;
+        inputHandler.SetInputEnabled(false);
+
+        HashSet<int> affectedColumns = blastHandler.GetAffectedColumns(group);
+
+        blastHandler.BlastGroup(group);
+
+        yield return null;
+
+        currentState = GameState.Settling;
+        int maxFallDistance = gravityHandler.ApplyGravity(affectedColumns);
+
+        float gravityWaitTime = CalculateFallTime(maxFallDistance);
+        if (gravityWaitTime > 0)
         {
-            Idle,
-            Processing,
-            Settling,
-            Shuffling
+            yield return new WaitForSeconds(gravityWaitTime);
         }
 
-        private void Awake()
+        int maxSpawnDistance = fillHandler.FillColumns(affectedColumns);
+
+        float fillWaitTime = CalculateFallTime(maxSpawnDistance + 1);
+        if (fillWaitTime > 0)
         {
-            ValidateReferences();
+            yield return new WaitForSeconds(fillWaitTime);
         }
 
-        private void Start()
+        groupVisualUpdater.UpdateAllIcons();
+
+        bool isDeadlock = CheckDeadlock();
+
+        if (isDeadlock)
         {
-            InitializeGame();
+            yield return StartCoroutine(HandleDeadlock());
         }
 
-        /// <summary>
-        /// Validates required references.
-        /// </summary>
-        private void ValidateReferences()
+        currentState = GameState.Idle;
+        isProcessing = false;
+        inputHandler.SetInputEnabled(true);
+        OnMoveCompleted?.Invoke();
+    }
+
+    private float CalculateFallTime(int rowDistance)
+    {
+        if (rowDistance <= 0) return 0f;
+
+        float distance = rowDistance * 1.2f;
+        float gravity = 80f;
+        float time = Mathf.Sqrt(2f * distance / gravity);
+
+        return time + 0.05f;
+    }
+
+    private bool CheckDeadlock()
+    {
+        return deadlockDetector.QuickDeadlockCheck();
+    }
+
+    private IEnumerator HandleDeadlock()
+    {
+        currentState = GameState.Shuffling;
+        OnShuffleTriggered?.Invoke();
+
+        yield return new WaitForSeconds(0.5f);
+
+        smartShuffler.Shuffle();
+        RefreshGridVisuals();
+        groupVisualUpdater.UpdateAllIcons();
+
+        yield return new WaitForSeconds(0.3f);
+    }
+
+    private void OnShuffleComplete()
+    {
+        Debug.Log("Shuffle completed - grid now has valid moves");
+    }
+
+    private void RefreshGridVisuals()
+    {
+        for (int row = 0; row < gridManager.RowCount; row++)
         {
-            if (gameConfig == null)
-                Debug.LogError("GameController: GameConfig is not assigned!");
-            if (gridManager == null)
-                Debug.LogError("GameController: GridManager is not assigned!");
-            if (inputHandler == null)
-                Debug.LogError("GameController: InputHandler is not assigned!");
-        }
-
-        /// <summary>
-        /// Initializes the game.
-        /// </summary>
-        public void InitializeGame()
-        {
-            // Initialize grid manager
-            gridManager.Initialize();
-
-            // Create handlers
-            blastHandler = new BlastHandler(gridManager);
-            gravityHandler = new GravityHandler(gridManager, gameConfig);
-            fillHandler = new FillHandler(gridManager, gameConfig);
-            groupVisualUpdater = new GroupVisualUpdater(gridManager, gameConfig);
-
-            // Create deadlock detection and shuffle
-            deadlockDetector = new DeadlockDetector(gridManager.GridData, gridManager.GroupFinder);
-            smartShuffler = new SmartShuffler(
-                gridManager.GridData,
-                gridManager.GroupFinder,
-                deadlockDetector,
-                gameConfig.colorCount
-            );
-
-            // Subscribe to events
-            inputHandler.OnPositionClicked += OnBlockClicked;
-            smartShuffler.OnShuffleCompleted += OnShuffleComplete;
-
-            // Create initial grid
-            gridManager.CreateGrid();
-
-            // Update visual states
-            groupVisualUpdater.UpdateAllIcons();
-
-            // Check for initial deadlock
-            CheckDeadlock();
-
-            currentState = GameState.Idle;
-            OnGameStarted?.Invoke();
-        }
-
-        /// <summary>
-        /// Handles block click events.
-        /// </summary>
-        private void OnBlockClicked(Vector2Int position)
-        {
-            if (currentState != GameState.Idle || isProcessing)
-                return;
-
-            // Find the group at clicked position
-            List<Vector2Int> group = gridManager.GroupFinder.FindGroup(position.y, position.x);
-
-            // Check if valid group (at least 2 blocks)
-            if (group.Count < 2)
-                return;
-
-            // Start processing
-            StartCoroutine(ProcessMove(group));
-        }
-
-        /// <summary>
-        /// Processes a move (blast, gravity, fill, check deadlock).
-        /// </summary>
-        private IEnumerator ProcessMove(List<Vector2Int> group)
-        {
-            isProcessing = true;
-            currentState = GameState.Processing;
-            inputHandler.SetInputEnabled(false);
-
-            // Get affected columns before blasting
-            HashSet<int> affectedColumns = blastHandler.GetAffectedColumns(group);
-
-            // Blast the group
-            blastHandler.BlastGroup(group);
-
-            // Wait a frame for blocks to be removed
-            yield return null;
-
-            // Apply gravity
-            currentState = GameState.Settling;
-            gravityHandler.ApplyGravity(affectedColumns);
-
-            // Wait for gravity animation
-            yield return new WaitForSeconds(settleDelay);
-
-            // Fill empty cells
-            fillHandler.FillColumns(affectedColumns);
-
-            // Wait for fill animation
-            yield return new WaitForSeconds(settleDelay);
-
-            // Update icon states
-            groupVisualUpdater.UpdateAllIcons();
-
-            // Check for deadlock
-            bool isDeadlock = CheckDeadlock();
-
-            if (isDeadlock)
+            for (int col = 0; col < gridManager.ColumnCount; col++)
             {
-                // Handle deadlock
-                yield return StartCoroutine(HandleDeadlock());
-            }
+                BlockData blockData = gridManager.GridData.GetBlock(row, col);
+                BlockView blockView = gridManager.GetBlockView(row, col);
 
-            // Done processing
-            currentState = GameState.Idle;
-            isProcessing = false;
-            inputHandler.SetInputEnabled(true);
-            OnMoveCompleted?.Invoke();
-        }
-
-        /// <summary>
-        /// Checks for deadlock condition.
-        /// </summary>
-        private bool CheckDeadlock()
-        {
-            return deadlockDetector.QuickDeadlockCheck();
-        }
-
-        /// <summary>
-        /// Handles deadlock by shuffling the grid.
-        /// </summary>
-        private IEnumerator HandleDeadlock()
-        {
-            currentState = GameState.Shuffling;
-            OnShuffleTriggered?.Invoke();
-
-            // Small delay before shuffle for visual feedback
-            yield return new WaitForSeconds(0.5f);
-
-            // Perform smart shuffle
-            smartShuffler.Shuffle();
-
-            // Refresh the visual representation
-            RefreshGridVisuals();
-
-            // Update icons after shuffle
-            groupVisualUpdater.UpdateAllIcons();
-
-            yield return new WaitForSeconds(0.3f);
-        }
-
-        /// <summary>
-        /// Called when shuffle is complete.
-        /// </summary>
-        private void OnShuffleComplete()
-        {
-            Debug.Log("Shuffle completed - grid now has valid moves");
-        }
-
-        /// <summary>
-        /// Refreshes the visual representation of the grid after shuffle.
-        /// </summary>
-        private void RefreshGridVisuals()
-        {
-            // Update each block view to match the shuffled data
-            for (int row = 0; row < gridManager.RowCount; row++)
-            {
-                for (int col = 0; col < gridManager.ColumnCount; col++)
+                if (blockView != null && !blockData.isEmpty)
                 {
-                    BlockData blockData = gridManager.GridData.GetBlock(row, col);
-                    Block.BlockView blockView = gridManager.GetBlockView(row, col);
-
-                    if (blockView != null && !blockData.isEmpty)
-                    {
-                        // Re-initialize with new color from shuffled data
-                        blockView.Initialize(
-                            blockData.colorIndex,
-                            row,
-                            col,
-                            gridManager.ColorDataArray[blockData.colorIndex]
-                        );
-                    }
+                    blockView.Initialize(
+                        blockData.colorIndex,
+                        row,
+                        col,
+                        gridManager.ColorDataArray[blockData.colorIndex]
+                    );
                 }
             }
         }
+    }
 
-        /// <summary>
-        /// Restarts the game.
-        /// </summary>
-        public void RestartGame()
+    public void RestartGame()
+    {
+        StopAllCoroutines();
+        gridManager.ClearGrid();
+        InitializeGame();
+    }
+
+    private void OnDestroy()
+    {
+        if (inputHandler != null)
         {
-            StopAllCoroutines();
-            gridManager.ClearGrid();
-            InitializeGame();
+            inputHandler.OnPositionClicked -= OnBlockClicked;
         }
 
-        private void OnDestroy()
+        if (smartShuffler != null)
         {
-            if (inputHandler != null)
-            {
-                inputHandler.OnPositionClicked -= OnBlockClicked;
-            }
-
-            if (smartShuffler != null)
-            {
-                smartShuffler.OnShuffleCompleted -= OnShuffleComplete;
-            }
+            smartShuffler.OnShuffleCompleted -= OnShuffleComplete;
         }
     }
 }
