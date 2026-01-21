@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GridManager : MonoBehaviour
+public sealed class GridManager : MonoBehaviour
 {
     [Header("Configuration")]
     [SerializeField]
@@ -21,7 +21,7 @@ public class GridManager : MonoBehaviour
     private Transform gridParent;
 
     private GridData gridData;
-    private BlockView[,] blockViews;
+    private Block[,] blockViews;
     private GroupFinder groupFinder;
     private int rowCount;
     private int columnCount;
@@ -51,7 +51,7 @@ public class GridManager : MonoBehaviour
         CalculateBlockDimensions();
 
         gridData = new GridData(rowCount, columnCount);
-        blockViews = new BlockView[rowCount, columnCount];
+        blockViews = new Block[rowCount, columnCount];
         groupFinder = new GroupFinder(gridData);
 
         int poolSize = Mathf.CeilToInt(rowCount * columnCount * 1.5f);
@@ -106,19 +106,19 @@ public class GridManager : MonoBehaviour
         BlockData blockData = new BlockData(colorIndex, row, column);
         gridData.SetBlock(row, column, blockData);
 
-        BlockView blockView = blockPool.Get();
+        Block blockView = blockPool.Get();
         if (blockView == null)
             return;
 
         blockView.transform.SetParent(gridParent);
-        blockView.Initialize(colorIndex, row, column, colorDataArray[colorIndex]);
+        blockView.Initialize(row, column, colorDataArray[colorIndex], gameConfig);
         blockView.SetWorldPosition(GridToWorldPosition(row, column));
         blockViews[row, column] = blockView;
     }
 
     public void RemoveBlock(int row, int column)
     {
-        BlockView blockView = blockViews[row, column];
+        Block blockView = blockViews[row, column];
         if (blockView != null)
         {
             blockPool.Return(blockView);
@@ -138,7 +138,7 @@ public class GridManager : MonoBehaviour
 
     public void MoveBlock(int fromRow, int fromCol, int toRow, int toCol, bool animate = true)
     {
-        BlockView blockView = blockViews[fromRow, fromCol];
+        Block blockView = blockViews[fromRow, fromCol];
         if (blockView == null)
             return;
 
@@ -154,7 +154,7 @@ public class GridManager : MonoBehaviour
 
         if (animate)
         {
-            blockView.MoveTo(GridToWorldPosition(toRow, toCol), gameConfig.fallDuration);
+            blockView.MoveTo(GridToWorldPosition(toRow, toCol));
         }
         else
         {
@@ -162,7 +162,7 @@ public class GridManager : MonoBehaviour
         }
     }
 
-    public BlockView GetBlockView(int row, int column)
+    public Block GetBlockView(int row, int column)
     {
         if (!gridData.IsValidPosition(row, column))
             return null;
@@ -204,40 +204,24 @@ public class GridManager : MonoBehaviour
 
     public void UpdateBlockIconState(int row, int column, IconState state)
     {
-        BlockView blockView = blockViews[row, column];
+        Block blockView = blockViews[row, column];
         if (blockView != null)
         {
             blockView.UpdateIconState(state);
         }
     }
 
-    public List<BlockView> GetAllBlockViews()
-    {
-        List<BlockView> blocks = new List<BlockView>();
-        for (int row = 0; row < rowCount; row++)
-        {
-            for (int col = 0; col < columnCount; col++)
-            {
-                if (blockViews[row, col] != null)
-                {
-                    blocks.Add(blockViews[row, col]);
-                }
-            }
-        }
-        return blocks;
-    }
-
-    public BlockView SpawnBlock(int row, int column, int colorIndex, Vector3 spawnPosition)
+    public Block SpawnBlock(int row, int column, int colorIndex, Vector3 spawnPosition)
     {
         BlockData blockData = new BlockData(colorIndex, row, column);
         gridData.SetBlock(row, column, blockData);
 
-        BlockView blockView = blockPool.Get();
+        Block blockView = blockPool.Get();
         if (blockView == null)
             return null;
 
         blockView.transform.SetParent(gridParent);
-        blockView.Initialize(colorIndex, row, column, colorDataArray[colorIndex]);
+        blockView.Initialize(row, column, colorDataArray[colorIndex], gameConfig);
         blockView.SetWorldPosition(spawnPosition);
         blockViews[row, column] = blockView;
 

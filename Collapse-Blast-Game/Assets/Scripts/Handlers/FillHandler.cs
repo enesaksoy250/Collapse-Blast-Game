@@ -1,32 +1,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class FillHandler
+public sealed class FillHandler
 {
-    private GridManager gridManager;
-    private GameConfig gameConfig;
+    private readonly GridManager gridManager;
 
-    public event System.Action OnFillComplete;
-
-    public FillHandler(GridManager gridManager, GameConfig gameConfig)
+    public FillHandler(GridManager gridManager)
     {
         this.gridManager = gridManager;
-        this.gameConfig = gameConfig;
-    }
-
-    public int FillEmptyCells()
-    {
-        int spawnedCount = 0;
-        int rowCount = gridManager.RowCount;
-        int columnCount = gridManager.ColumnCount;
-
-        for (int col = 0; col < columnCount; col++)
-        {
-            spawnedCount += FillColumn(col, rowCount);
-        }
-
-        OnFillComplete?.Invoke();
-        return spawnedCount;
     }
 
     private int FillColumn(int col, int rowCount)
@@ -54,10 +35,10 @@ public class FillHandler
                 Vector3 spawnPosition = gridManager.GetSpawnPosition(col, spawnOffset);
                 Vector3 targetPosition = gridManager.GridToWorldPosition(row, col);
 
-                BlockView block = gridManager.SpawnBlock(row, col, colorIndex, spawnPosition);
+                Block block = gridManager.SpawnBlock(row, col, colorIndex, spawnPosition);
                 if (block != null)
                 {
-                    block.MoveTo(targetPosition, gameConfig.fallDuration);
+                    block.MoveTo(targetPosition);
                 }
                 spawnIndex++;
             }
@@ -77,29 +58,6 @@ public class FillHandler
             maxSpawnedInColumn = Mathf.Max(maxSpawnedInColumn, spawned);
         }
 
-        if (maxSpawnedInColumn > 0)
-        {
-            OnFillComplete?.Invoke();
-        }
-
         return maxSpawnedInColumn;
-    }
-
-    public void FillEmptyCellsImmediate()
-    {
-        int rowCount = gridManager.RowCount;
-        int columnCount = gridManager.ColumnCount;
-
-        for (int col = 0; col < columnCount; col++)
-        {
-            for (int row = 0; row < rowCount; row++)
-            {
-                if (gridManager.GridData.IsEmpty(row, col))
-                {
-                    int colorIndex = Random.Range(0, gridManager.ColorCount);
-                    gridManager.CreateBlock(row, col, colorIndex);
-                }
-            }
-        }
     }
 }

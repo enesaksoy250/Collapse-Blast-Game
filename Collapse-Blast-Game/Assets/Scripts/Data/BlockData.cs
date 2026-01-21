@@ -1,5 +1,3 @@
-using UnityEngine;
-
 public struct BlockData
 {
     public int colorIndex;
@@ -26,10 +24,5 @@ public struct BlockData
         };
     }
 
-    public Vector2Int Position => new Vector2Int(column, row);
 
-    public override string ToString()
-    {
-        return isEmpty ? $"Empty({row},{column})" : $"Block({colorIndex},{row},{column})";
-    }
 }

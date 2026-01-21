@@ -1,17 +1,15 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System;
 
-public class InputHandler : MonoBehaviour
+public sealed class InputHandler : MonoBehaviour
 {
     [SerializeField]
     private Camera mainCamera;
 
-    [SerializeField]
-    private LayerMask blockLayer;
-
     private bool inputEnabled = true;
 
-    public event System.Action<Vector2Int> OnPositionClicked;
+    public event Action<Vector2Int> OnPositionClicked;
 
     private void Awake()
     {
@@ -43,7 +41,7 @@ public class InputHandler : MonoBehaviour
 
         if (hit.collider != null)
         {
-            BlockView blockView = hit.collider.GetComponent<BlockView>();
+            Block blockView = hit.collider.GetComponent<Block>();
             if (blockView != null && blockView.IsActive)
             {
                 Vector2Int position = new Vector2Int(blockView.Column, blockView.Row);

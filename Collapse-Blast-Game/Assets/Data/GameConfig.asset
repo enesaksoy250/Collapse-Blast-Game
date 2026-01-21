@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9e765510fd8c4f43b25536e651bc8d5, type: 3}
   m_Name: GameConfig
   m_EditorClassIdentifier: Assembly-CSharp::CollapseBlast.Config.GameConfig
-  rowCount: 8
-  columnCount: 8
+  rowCount: 10
+  columnCount: 10
   colorCount: 6
   thresholdA: 4
   thresholdB: 7
   thresholdC: 9
   blockSize: 1
   blockSpacing: 0.1
-  fallDuration: 0.3
-  spawnDuration: 0.2
+  gravity: 80
+  maxFallSpeed: 50

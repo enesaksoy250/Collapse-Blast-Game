@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
-public class GameController : MonoBehaviour
+public sealed class GameController : MonoBehaviour
 {
     [Header("Configuration")]
     [SerializeField]
@@ -25,9 +26,9 @@ public class GameController : MonoBehaviour
     private GameState currentState;
     private bool isProcessing;
 
-    public event System.Action OnGameStarted;
-    public event System.Action OnMoveCompleted;
-    public event System.Action OnShuffleTriggered;
+    public event Action OnGameStarted;
+    public event Action OnMoveCompleted;
+    public event Action OnShuffleTriggered;
 
     private enum GameState
     {
@@ -62,16 +63,14 @@ public class GameController : MonoBehaviour
         gridManager.Initialize();
 
         blastHandler = new BlastHandler(gridManager);
-        gravityHandler = new GravityHandler(gridManager, gameConfig);
-        fillHandler = new FillHandler(gridManager, gameConfig);
+        gravityHandler = new GravityHandler(gridManager);
+        fillHandler = new FillHandler(gridManager);
         groupVisualUpdater = new GroupVisualUpdater(gridManager, gameConfig);
 
         deadlockDetector = new DeadlockDetector(gridManager.GridData, gridManager.GroupFinder);
         smartShuffler = new SmartShuffler(
             gridManager.GridData,
-            gridManager.GroupFinder,
-            deadlockDetector,
-            gameConfig.colorCount
+            deadlockDetector
         );
 
         inputHandler.OnPositionClicked += OnBlockClicked;
@@ -79,7 +78,14 @@ public class GameController : MonoBehaviour
 
         gridManager.CreateGrid();
         groupVisualUpdater.UpdateAllIcons();
-        CheckDeadlock();
+
+
+        if (CheckDeadlock())
+        {
+            smartShuffler.Shuffle();
+            RefreshGridVisuals();
+            groupVisualUpdater.UpdateAllIcons();
+        }
 
         currentState = GameState.Idle;
         OnGameStarted?.Invoke();
@@ -147,7 +153,7 @@ public class GameController : MonoBehaviour
         if (rowDistance <= 0) return 0f;
 
         float distance = rowDistance * 1.2f;
-        float gravity = 80f;
+        float gravity = gameConfig.gravity;
         float time = Mathf.Sqrt(2f * distance / gravity);
 
         return time + 0.05f;
@@ -163,13 +169,13 @@ public class GameController : MonoBehaviour
         currentState = GameState.Shuffling;
         OnShuffleTriggered?.Invoke();
 
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(0.25f);
 
         smartShuffler.Shuffle();
         RefreshGridVisuals();
         groupVisualUpdater.UpdateAllIcons();
 
-        yield return new WaitForSeconds(0.3f);
+        yield return null;
     }
 
     private void OnShuffleComplete()
@@ -184,15 +190,14 @@ public class GameController : MonoBehaviour
             for (int col = 0; col < gridManager.ColumnCount; col++)
             {
                 BlockData blockData = gridManager.GridData.GetBlock(row, col);
-                BlockView blockView = gridManager.GetBlockView(row, col);
+                Block blockView = gridManager.GetBlockView(row, col);
 
                 if (blockView != null && !blockData.isEmpty)
                 {
                     blockView.Initialize(
-                        blockData.colorIndex,
                         row,
                         col,
-                        gridManager.ColorDataArray[blockData.colorIndex]
+                        gridManager.ColorDataArray[blockData.colorIndex], gameConfig
                     );
                 }
             }

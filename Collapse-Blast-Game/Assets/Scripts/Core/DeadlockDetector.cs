@@ -1,17 +1,12 @@
-public class DeadlockDetector
+public sealed class DeadlockDetector
 {
-    private GridData gridData;
-    private IGroupFinder groupFinder;
+    private readonly GridData gridData;
+    private readonly IGroupFinder groupFinder;
 
     public DeadlockDetector(GridData gridData, IGroupFinder groupFinder)
     {
         this.gridData = gridData;
         this.groupFinder = groupFinder;
-    }
-
-    public void SetGridData(GridData gridData)
-    {
-        this.gridData = gridData;
     }
 
     public bool IsDeadlock()

@@ -11,7 +11,7 @@ public enum BlockColorType
 }
 
 [CreateAssetMenu(fileName = "BlockColorData", menuName = "CollapseBlast/Block Color Data")]
-public class BlockColorData : ScriptableObject
+public sealed class BlockColorData : ScriptableObject
 {
     [Tooltip("Color type of this block")]
     public BlockColorType colorType;

@@ -1,11 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class BlastHandler
+public sealed class BlastHandler
 {
-    private GridManager gridManager;
-
-    public event System.Action<List<Vector2Int>> OnBlocksBlasted;
+    private readonly GridManager gridManager;
 
     public BlastHandler(GridManager gridManager)
     {
@@ -18,8 +16,6 @@ public class BlastHandler
             return false;
 
         gridManager.RemoveBlocks(group);
-        OnBlocksBlasted?.Invoke(group);
-
         return true;
     }
 

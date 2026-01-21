@@ -1,30 +1,21 @@
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
-public class SmartShuffler : IDeadlockHandler
+public sealed class SmartShuffler : IDeadlockHandler
 {
-    private GridData gridData;
-    private IGroupFinder groupFinder;
-    private DeadlockDetector deadlockDetector;
-    private int colorCount;
+    private readonly GridData gridData;
+    private readonly DeadlockDetector deadlockDetector;
 
-    private List<BlockData> allBlocks;
+    private readonly List<BlockData> allBlocks;
 
-    public event System.Action OnShuffleCompleted;
+    public event Action OnShuffleCompleted;
 
-    public SmartShuffler(GridData gridData, IGroupFinder groupFinder, DeadlockDetector deadlockDetector, int colorCount)
+    public SmartShuffler(GridData gridData, DeadlockDetector deadlockDetector)
     {
         this.gridData = gridData;
-        this.groupFinder = groupFinder;
         this.deadlockDetector = deadlockDetector;
-        this.colorCount = colorCount;
         this.allBlocks = new List<BlockData>();
-    }
-
-    public void UpdateConfiguration(GridData gridData, int colorCount)
-    {
-        this.gridData = gridData;
-        this.colorCount = colorCount;
     }
 
     public bool IsDeadlock()
@@ -34,8 +25,6 @@ public class SmartShuffler : IDeadlockHandler
 
     public void Shuffle()
     {
-        Debug.Log("[SmartShuffler] Deadlock detected! Starting shuffle...");
-
         CollectAllBlocks();
 
         if (allBlocks.Count < 2)
@@ -74,7 +63,7 @@ public class SmartShuffler : IDeadlockHandler
         int n = list.Count;
         for (int i = n - 1; i > 0; i--)
         {
-            int j = Random.Range(0, i + 1);
+            int j = UnityEngine.Random.Range(0, i + 1);
             BlockData temp = list[i];
             list[i] = list[j];
             list[j] = temp;
@@ -130,8 +119,8 @@ public class SmartShuffler : IDeadlockHandler
         int rowCount = gridData.RowCount;
         int columnCount = gridData.ColumnCount;
 
-        int startRow = Random.Range(0, rowCount);
-        int startCol = Random.Range(0, columnCount);
+        int startRow = UnityEngine.Random.Range(0, rowCount);
+        int startCol = UnityEngine.Random.Range(0, columnCount);
 
         for (int r = 0; r < rowCount; r++)
         {

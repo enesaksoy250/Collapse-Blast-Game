@@ -1,7 +1,7 @@
 public interface IBlockPool
 {
-    BlockView Get();
-    void Return(BlockView block);
+    Block Get();
+    void Return(Block block);
     void Prewarm(int count);
     void Clear();
 }

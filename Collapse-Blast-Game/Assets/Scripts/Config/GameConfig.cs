@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "GameConfig", menuName = "CollapseBlast/Game Config")]
-public class GameConfig : ScriptableObject
+public sealed class GameConfig : ScriptableObject
 {
     [Header("Grid Settings")]
     [Tooltip("Number of rows (M)")]
@@ -36,12 +36,9 @@ public class GameConfig : ScriptableObject
     [Tooltip("Spacing between blocks in world units")]
     public float blockSpacing = 0.05f;
 
-    [Header("Animation Settings")]
-    [Tooltip("Duration for block fall animation")]
-    public float fallDuration = 0.3f;
-
-    [Tooltip("Duration for block spawn animation")]
-    public float spawnDuration = 0.2f;
+    [Header("Physics")]
+    public float gravity = 80f;
+    public float maxFallSpeed = 50f;
 
     public IconState GetIconStateForGroupSize(int groupSize)
     {

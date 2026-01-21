@@ -377,9 +377,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CollapseBlast.Input.InputHandler
   mainCamera: {fileID: 519420031}
-  blockLayer:
-    serializedVersion: 2
-    m_Bits: 4294967295
 --- !u!1 &789493533
 GameObject:
   m_ObjectHideFlags: 0

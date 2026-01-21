@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class BlockPool : MonoBehaviour, IBlockPool
+public sealed class BlockPool : MonoBehaviour, IBlockPool
 {
     [SerializeField]
     private GameObject blockPrefab;
@@ -9,16 +9,14 @@ public class BlockPool : MonoBehaviour, IBlockPool
     [SerializeField]
     private Transform poolParent;
 
-    private Queue<BlockView> availableBlocks;
-    private List<BlockView> allBlocks;
-    private int initialPoolSize;
+    private Queue<Block> availableBlocks;
+    private List<Block> allBlocks;
 
     public void Initialize(GameObject prefab, int initialSize)
     {
         blockPrefab = prefab;
-        initialPoolSize = initialSize;
-        availableBlocks = new Queue<BlockView>(initialSize);
-        allBlocks = new List<BlockView>(initialSize);
+        availableBlocks = new Queue<Block>(initialSize);
+        allBlocks = new List<Block>(initialSize);
 
         if (poolParent == null)
         {
@@ -34,15 +32,15 @@ public class BlockPool : MonoBehaviour, IBlockPool
     {
         for (int i = 0; i < count; i++)
         {
-            BlockView block = CreateNewBlock();
+            Block block = CreateNewBlock();
             block.Reset();
             availableBlocks.Enqueue(block);
         }
     }
 
-    public BlockView Get()
+    public Block Get()
     {
-        BlockView block;
+        Block block;
 
         if (availableBlocks.Count > 0)
         {
@@ -56,7 +54,7 @@ public class BlockPool : MonoBehaviour, IBlockPool
         return block;
     }
 
-    public void Return(BlockView block)
+    public void Return(Block block)
     {
         if (block == null)
             return;
@@ -66,7 +64,7 @@ public class BlockPool : MonoBehaviour, IBlockPool
         availableBlocks.Enqueue(block);
     }
 
-    private BlockView CreateNewBlock()
+    private Block CreateNewBlock()
     {
         if (blockPrefab == null)
         {
@@ -75,11 +73,11 @@ public class BlockPool : MonoBehaviour, IBlockPool
         }
 
         GameObject blockObj = Instantiate(blockPrefab, poolParent);
-        BlockView block = blockObj.GetComponent<BlockView>();
+        Block block = blockObj.GetComponent<Block>();
 
         if (block == null)
         {
-            block = blockObj.AddComponent<BlockView>();
+            block = blockObj.AddComponent<Block>();
         }
 
         allBlocks.Add(block);
@@ -88,7 +86,7 @@ public class BlockPool : MonoBehaviour, IBlockPool
 
     public void Clear()
     {
-        foreach (BlockView block in allBlocks)
+        foreach (Block block in allBlocks)
         {
             if (block != null && block.gameObject != null)
             {
@@ -99,20 +97,6 @@ public class BlockPool : MonoBehaviour, IBlockPool
         availableBlocks.Clear();
         allBlocks.Clear();
     }
-
-    public void ReturnAllBlocks()
-    {
-        foreach (BlockView block in allBlocks)
-        {
-            if (block != null && block.IsActive)
-            {
-                Return(block);
-            }
-        }
-    }
-
-    public int AvailableCount => availableBlocks.Count;
-    public int TotalCount => allBlocks.Count;
 
     private void OnDestroy()
     {

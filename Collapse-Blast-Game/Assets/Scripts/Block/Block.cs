@@ -1,19 +1,22 @@
 using UnityEngine;
+using System;
+using DG.Tweening;
 
 [RequireComponent(typeof(SpriteRenderer))]
 [RequireComponent(typeof(BoxCollider2D))]
-public class BlockView : MonoBehaviour
+public sealed class Block : MonoBehaviour
 {
+
+    private GameConfig gameConfig;
     private SpriteRenderer spriteRenderer;
     private BoxCollider2D boxCollider;
-    private int colorIndex;
     private int row;
     private int column;
     private BlockColorData colorData;
     private IconState currentIconState;
     private bool isActive;
+    private Tween currentTween;
 
-    public int ColorIndex => colorIndex;
     public int Row => row;
     public int Column => column;
     public bool IsActive => isActive;
@@ -33,12 +36,12 @@ public class BlockView : MonoBehaviour
         }
     }
 
-    public void Initialize(int colorIndex, int row, int column, BlockColorData colorData)
+    public void Initialize(int row, int column, BlockColorData colorData, GameConfig gameConfig)
     {
-        this.colorIndex = colorIndex;
         this.row = row;
         this.column = column;
         this.colorData = colorData;
+        this.gameConfig = gameConfig;
         this.currentIconState = IconState.Default;
         this.isActive = true;
 
@@ -83,68 +86,46 @@ public class BlockView : MonoBehaviour
         transform.position = position;
     }
 
-    public void MoveTo(Vector3 targetPosition, float duration, System.Action onComplete = null)
+    public void MoveTo(Vector3 targetPosition, Action onComplete = null)
     {
-        StopAllCoroutines();
-        StartCoroutine(GravityFallCoroutine(targetPosition, onComplete));
+
+        currentTween?.Kill();
+
+        float distance = Mathf.Abs(transform.position.y - targetPosition.y);
+        float duration = CalculateFallDuration(distance);
+
+
+        currentTween = transform
+            .DOMoveY(targetPosition.y, duration)
+            .SetEase(Ease.InQuad)
+            .OnComplete(() => onComplete?.Invoke());
     }
 
-    private System.Collections.IEnumerator GravityFallCoroutine(Vector3 targetPosition, System.Action onComplete)
+    private float CalculateFallDuration(float distance)
     {
-        float velocity = 0f;
-        float gravity = 80f;
-        float maxSpeed = 50f;
+        if (distance <= 0) return 0f;
 
-        while (transform.position.y > targetPosition.y + 0.01f)
-        {
-            velocity += gravity * Time.deltaTime;
-            velocity = Mathf.Min(velocity, maxSpeed);
+        float gravity = gameConfig.gravity;
+        float duration = Mathf.Sqrt(2f * distance / gravity);
 
-            float moveDistance = velocity * Time.deltaTime;
-            float remainingDistance = transform.position.y - targetPosition.y;
-
-            if (moveDistance >= remainingDistance)
-            {
-                break;
-            }
-
-            transform.position += Vector3.down * moveDistance;
-
-            yield return null;
-        }
-
-        transform.position = targetPosition;
-        onComplete?.Invoke();
-    }
-
-    public void MoveInstant(Vector3 targetPosition)
-    {
-        StopAllCoroutines();
-        transform.position = targetPosition;
+        return Mathf.Clamp(duration, 0.05f, 1f);
     }
 
     public void Reset()
     {
-        colorIndex = -1;
+        currentTween?.Kill();
+        currentTween = null;
+
         row = -1;
         column = -1;
         colorData = null;
         currentIconState = IconState.Default;
         isActive = false;
         gameObject.SetActive(false);
-        StopAllCoroutines();
     }
 
-    private void OnMouseDown()
+    private void OnDisable()
     {
-        if (!isActive)
-            return;
-
-        BlockClickHandler.OnBlockClicked?.Invoke(this);
+        currentTween?.Kill();
     }
-}
-
-public static class BlockClickHandler
-{
-    public static System.Action<BlockView> OnBlockClicked;
 }
